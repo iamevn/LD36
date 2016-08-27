@@ -2,11 +2,20 @@ require "love"
 flux = require "flux"
 
 local sprites = {}
+local state = {
+    gamestate = "readytoroll",
+    totaldistance = 0,
+    upgrades = {
+	hill = 0,
+	rock = 0,
+	ramp = 0
+    },
+
+}
 local rockdata = {
-    launched = false,
     xpos = 0, --distance from start spot
     ypos = 145, --height above ground
-    xoffset = 50,
+    xoffset = 65,
     yoffset = 100,
     xvel = 0,
     yvel = 0,
@@ -20,7 +29,7 @@ local rockdata = {
 }
 
 function launch()
-    rockdata.launched = true
+    state.gamestate = "launched"
 end
 
 function love.load()
@@ -28,24 +37,26 @@ function love.load()
     sprites.background = love.graphics.newImage("res/background.png")
     sprites.hill = love.graphics.newImage("res/hill.png")
     sprites.ramp = love.graphics.newImage("res/ramp.png")
+    sprites.caveman = love.graphics.newImage("res/caveman.png")
 end
 
 function love.update(dt)
     flux.update(dt)
     local r = rockdata
 
+    r.rotvel = r.xvel/64
     r.rot = (r.rot + r.rotvel * 2 * math.pi * dt) % (2 * math.pi)
     r.xpos = r.xpos + r.xvel * dt
 
-    if r.ypos < 10 then
-	r.xvel = r.xvel - dt * r.friction
-	if r.xvel < 0 then r.xvel = 0 end
-    end
 
-    r.rotvel = r.xvel/64
+    if state.gamestate == "launched" then
+	local ERR = 0.1
+	--friction slows rock when on ground
+	if r.ypos < 10 then
+	    r.xvel = r.xvel - dt * r.friction
+	    if r.xvel < 0 then r.xvel = 0 end
+	end
 
-    local ERR = 0.1
-    if r.launched then
 	if r.ypos < 0 then
 	    r.yvel = -r.yvel * 1/r.bouncedamp
 	    r.ypos = 0
@@ -60,6 +71,10 @@ function love.update(dt)
 	    r.yvel = r.yvel - r.gravity * r.mass * dt
 	    r.ypos = r.ypos + r.yvel * dt
 	end
+
+	if r.xvel == 0 and r.yvel == 0 then
+	    state.gamestate = "stopped"
+	end
     end
 end
 
@@ -68,14 +83,22 @@ function love.draw()
     love.graphics.draw(sprites.background, -(rockdata.xpos%sprites.background:getWidth()), 0)
     love.graphics.draw(sprites.background, -(rockdata.xpos%sprites.background:getWidth())+sprites.background:getWidth(), 0)
     love.graphics.draw(sprites.hill, -rockdata.xpos, 0)
-    love.graphics.draw(sprites.ramp, -rockdata.xpos, 0)
+    love.graphics.draw(sprites.caveman, -rockdata.xpos, 10)
+    -- love.graphics.draw(sprites.ramp, -rockdata.xpos, 0)
     local r = rockdata
     love.graphics.printf("Distance: "..math.floor(r.xpos / 100 + 0.5).."\nHeight: "..math.floor(r.ypos + 0.5), 20, 20, 760)
+    if state.gamestate == "readytoroll" then
+	love.graphics.printf("[space] to roll", 20, 100, 700)
+    end
+    love.graphics.printf(state.gamestate, 400, 20, 700)
     love.graphics.draw(sprites.rock, r.xoffset, (love.graphics.getHeight() - r.ypos - r.yoffset), r.rot, r.scl, r.scl, sprites.rock:getWidth()/2, sprites.rock:getHeight()/2)
 end
 
 function love.keyreleased(key)
-    if (not rockdata.launched) and rockdata.xpos == 0 and key == 'space' then
-	flux.to(rockdata, 3, {xpos=280, ypos=0, xvel=100, xoffset=150}):ease("quadin"):after(0.5, {xpos=280+(100/2), ypos=50, yvel=100}):oncomplete(launch)
+    if state.gamestate == "readytoroll" and key == "space" then
+	state.gamestate = "launching"
+	flux.to(rockdata, 3, {xpos = 280, ypos = 0, xvel = 100, xoffset = 150}):ease("quadin")
+	    -- :after(0.5, {xpos = 280+(100/2), ypos = 50, yvel = 100})
+	    :oncomplete(launch)
     end
 end
