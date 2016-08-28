@@ -50,31 +50,34 @@ function launch()
 end
 
 function levelup(what)
-    if what == 1 or what == "hit" then
-	if state.level.hit < state.max.hit then
-	    state.level.hit = state.level.hit + 1
-	else
-	    state.level.hit = 1
-	end
-    elseif what == 2 or what == "hill" then
-	if state.level.hill < state.max.hill then
-	    state.level.hill = state.level.hill + 1
-	else
-	    state.level.hill = 1
-	end
-    elseif what == 3 or what == "rock" then
-	if state.level.rock < state.max.rock then
-	    state.level.rock = state.level.rock + 1
-	else
-	    state.level.rock = 1
-	end
-    elseif what == 4 or what == "ramp" then
-	if state.level.ramp < state.max.ramp then
-	    state.level.ramp = state.level.ramp + 1
-	else
-	    state.level.ramp = 1
-	end
+    local total = math.floor(state.totaldistance / 50 + 0.5)
+    local spent = 0
+    if (what == 1 or what == "hit")
+	and total >= state.level.hit * 100
+	and state.level.hit < state.max.hit
+    then
+	spent = state.level.hit * 100
+	state.level.hit = state.level.hit + 1
+    elseif (what == 2 or what == "hill")
+	and total >= state.level.hill * 100
+	and state.level.hill < state.max.hill
+    then
+	spent = state.level.hill * 100
+	state.level.hill = state.level.hill + 1
+    elseif (what == 3 or what == "rock")
+	and total >= state.level.rock * 100
+	and state.level.rock < state.max.rock
+    then
+	spent = state.level.rock * 100
+	state.level.rock = state.level.rock + 1
+    elseif (what == 4 or what == "ramp")
+	and total >= state.level.ramp * 100
+	and state.level.ramp < state.max.ramp
+    then
+	spent = state.level.ramp * 100
+	state.level.ramp = state.level.ramp + 1
     end
+    state.totaldistance = state.totaldistance - spent * 100
     resetstuff()
 end
 
@@ -185,9 +188,9 @@ function love.draw()
     love.graphics.printf("Distance: "..math.floor(r.xpos / 50 + 0.5).."\nHeight: "..math.floor(r.ypos + 0.5), 20, 20, 760)
     love.graphics.printf("[space] to roll\n[r] to reset\n[q] to quit", 20, 20, 760, "center")
     love.graphics.printf("Total Distance: "..math.floor(state.totaldistance + r.xpos / 50 + 0.5), 20, 20, 760, "right")
-    love.graphics.printf("Upgrades:\n[1]     hit ("..state.level.hit.."/"..state.max.hit..
-	")\n[2]     hill ("..state.level.hill.."/"..state.max.hill..
-	")\n[3]  rock ("..state.level.rock.."/"..state.max.rock..
+    love.graphics.printf("Upgrades:\n(costs 100 x CurrentLevel)\n[1] hit ("..state.level.hit.."/"..state.max.hit..
+	")\n[2] hill ("..state.level.hill.."/"..state.max.hill..
+	")\n[3] rock ("..state.level.rock.."/"..state.max.rock..
 	")\n[4] ramp ("..state.level.ramp.."/"..state.max.ramp..")"
 	, 20, 34, 760, "right"
     )
