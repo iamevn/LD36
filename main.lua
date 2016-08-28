@@ -43,7 +43,7 @@ local intro = {
     textfade1 = 0,
     textfade2 = 0,
     mainfont =  love.graphics.newFont(12),
-    introfont = love.graphics.newFont("res/CAVEMAN.TTF", 50)
+    introfont = love.graphics.newFont("res/font/CAVEMAN.TTF", 50)
 }
 nextintrostate = function()
     intro.state = intro.state + 1
@@ -310,6 +310,7 @@ function introkeyreleased(key)
 	    tween = flux.to(intro.rock, 8, {xpos = 450, xvel = 50, xoffset = 150}):ease("sinein"):oncomplete(nextintrostate)
 	    flux.to(intro.rock, 8, {ypos = 10}):ease("sineinout")
 	elseif intro.state == 4 and key == "space" then
+	    state.totaldistance = intro.rock.xpos / 50
 	    resetstuff()
 	end
     end
