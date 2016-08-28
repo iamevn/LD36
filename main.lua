@@ -334,6 +334,7 @@ end
 
 function introkeyreleased(key)
     if state.gamestate == "intro" then
+	resetstuff()
 	if intro.state == 0 and key == "space" then
 	    sounds.playsnd.push()
 	    intro.state = 1
@@ -355,7 +356,8 @@ function mainkeyreleased(key)
 	local hillvel = maxvel/2 + maxvel/2 * state.chargetime
 
 	if state.level.hill == 1 then
-	    tween = flux.to(rockdata, 300 / hillvel, {xpos = 300, ypos = 0, xvel = hillvel, xoffset = 150}):ease("quadin")
+	    tween = flux.to(rockdata, 300 / hillvel, {xpos = 300, xvel = hillvel, xoffset = 150}):ease("quadin")
+	    tween = flux.to(rockdata, 300 / hillvel, {ypos = 0}):ease("sinein")
 	elseif state.level.hill == 2 then
 	    tween = flux.to(rockdata, 300 / hillvel, {xpos = 300, ypos = 0, xvel = hillvel, xoffset = 150}):ease("cubicin")
 	end
@@ -368,18 +370,19 @@ function mainkeyreleased(key)
 	end
 
 	tween:oncomplete(launch)
-    elseif key == "r" or key == "R" then
+    elseif key == "r" then
 	resetstuff()
-    elseif key == "q" or key == "Q" then
+    elseif key == "q" then
 	love.event.quit()
-    elseif key == "1" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+    elseif key == "1" and (state.gamestate == "readytoroll" or state.gamestate == "stopped") then
 	levelup(1)
-    elseif key == "2" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+    elseif key == "2" and (state.gamestate == "readytoroll" or state.gamestate == "stopped") then
 	levelup(2)
-    elseif key == "3" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+    elseif key == "3" and (state.gamestate == "readytoroll" or state.gamestate == "stopped") then
 	levelup(3)
-    elseif key == "4" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+    elseif key == "4" and (state.gamestate == "readytoroll" or state.gamestate == "stopped") then
 	levelup(4)
+    else
     end
 end
 
