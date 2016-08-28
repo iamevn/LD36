@@ -334,7 +334,6 @@ end
 
 function introkeyreleased(key)
     if state.gamestate == "intro" then
-	resetstuff()
 	if intro.state == 0 and key == "space" then
 	    sounds.playsnd.push()
 	    intro.state = 1
