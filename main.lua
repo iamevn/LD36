@@ -41,9 +41,11 @@ local intro = {
 	mass = 50,
 	bouncedamp = 2
     },
+    textfade0 = 0,
     textfade1 = 0,
     textfade2 = 0,
     mainfont =  love.graphics.newFont(12),
+    hintfont =  love.graphics.newFont(20),
     introfont = love.graphics.newFont("res/font/CAVEMAN.TTF", 50)
 }
 local sounds = {
@@ -164,6 +166,9 @@ function love.load()
 	love.graphics.newImage("res/img/ramp2.png"),
 	love.graphics.newImage("res/img/ramp3.png")
     }
+
+    -- fade in space bar hint
+    tween = flux.to(intro, 8, {textfade0 = 255}):delay(3)
 end
 
 function introupdate(dt)
@@ -267,6 +272,9 @@ function introdraw()
     love.graphics.setColor(255, 255, 255, math.floor(intro.textfade2))
     love.graphics.setFont(intro.mainfont)
     love.graphics.printf("(press [space])", 20, 400, 760, "center")
+    love.graphics.setFont(intro.hintfont)
+    love.graphics.setColor(230, 230, 230, math.floor(intro.textfade0))
+    love.graphics.printf("(press [space])", 533 - (intro.rock.xpos) * 2, 115, 760, "left")
     love.graphics.setColor(255, 255, 255, 255)
 end
 
