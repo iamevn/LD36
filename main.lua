@@ -21,6 +21,7 @@ local state = {
     chargetime = 0,
     chargemax = 1,
     chargeflip = false,
+    alreadybounced = false,
     font = love.graphics.getFont(),
 }
 local intro = {
@@ -45,6 +46,19 @@ local intro = {
     mainfont =  love.graphics.newFont(12),
     introfont = love.graphics.newFont("res/font/CAVEMAN.TTF", 50)
 }
+local sounds = {
+    intro = love.audio.newSource("res/snd/intro.wav"),
+    bounce = love.audio.newSource("res/snd/bounce.wav"),
+    buy = love.audio.newSource("res/snd/buy.wav"),
+    push = love.audio.newSource("res/snd/push.wav"),
+}
+sounds.playsnd = {
+    intro = function() sounds.intro:play() end,
+    bounce = function() sounds.bounce:play() end,
+    buy = function() sounds.buy:play() end,
+    push = function() sounds.push:play() end,
+}
+
 nextintrostate = function()
     intro.state = intro.state + 1
 end
@@ -82,24 +96,28 @@ function levelup(what)
     then
 	state.totaldistance = state.totaldistance - state.level.hit * 100
 	state.level.hit = state.level.hit + 1
+	sounds.playsnd.buy()
     elseif (what == 2 or what == "hill")
 	and state.totaldistance >= state.level.hill * 100
 	and state.level.hill < state.max.hill
     then
 	state.totaldistance = state.totaldistance - state.level.hill * 100
 	state.level.hill = state.level.hill + 1
+	sounds.playsnd.buy()
     elseif (what == 3 or what == "rock")
 	and state.totaldistance >= state.level.rock * 100
 	and state.level.rock < state.max.rock
     then
 	state.totaldistance = state.totaldistance - state.level.rock * 100
 	state.level.rock = state.level.rock + 1
+	sounds.playsnd.buy()
     elseif (what == 4 or what == "ramp")
 	and state.totaldistance >= state.level.ramp * 100
 	and state.level.ramp < state.max.ramp
     then
 	state.totaldistance = state.totaldistance - state.level.ramp * 100
 	state.level.ramp = state.level.ramp + 1
+	sounds.playsnd.buy()
     end
     resetstuff()
 end
@@ -107,7 +125,7 @@ end
 local tween = nil
 
 function resetstuff()
-    state.totaldistance = state.totaldistance + rockdata.xpos / 50
+    state.totaldistance = state.totaldistance + math.floor(rockdata.xpos / 50 + 0.5)
     if tween then tween:stop() end
     state.gamestate = "readytoroll"
     state.charging = false
@@ -128,23 +146,23 @@ function resetstuff()
 end
 
 function love.load()
-    sprites.background = love.graphics.newImage("res/background.png")
+    sprites.background = love.graphics.newImage("res/img/background.png")
 
-    sprites.intro = love.graphics.newImage("res/intro.png")
+    sprites.intro = love.graphics.newImage("res/img/intro.png")
     sprites.rock = {
-	love.graphics.newImage("res/rock1.png"),
-	love.graphics.newImage("res/rock2.png"),
-	love.graphics.newImage("res/rock3.png")
+	love.graphics.newImage("res/img/rock1.png"),
+	love.graphics.newImage("res/img/rock2.png"),
+	love.graphics.newImage("res/img/rock3.png")
     }
 
     sprites.hill = {
-	love.graphics.newImage("res/hill1.png"),
-	love.graphics.newImage("res/hill2.png"),
+	love.graphics.newImage("res/img/hill1.png"),
+	love.graphics.newImage("res/img/hill2.png"),
     }
     sprites.ramp = {
-	love.graphics.newImage("res/ramp1.png"),
-	love.graphics.newImage("res/ramp2.png"),
-	love.graphics.newImage("res/ramp3.png")
+	love.graphics.newImage("res/img/ramp1.png"),
+	love.graphics.newImage("res/img/ramp2.png"),
+	love.graphics.newImage("res/img/ramp3.png")
     }
 end
 
@@ -166,7 +184,7 @@ function introupdate(dt)
 
     if intro.state == 3 then
 	intro.state = 4
-	tween = flux.to(intro, 5, {textfade1 = 255}):delay(1):after(1, {textfade2 = 255}):delay(5)
+	tween = flux.to(intro, 5, {textfade1 = 255}):delay(1):onstart(sounds.playsnd.intro):after(1, {textfade2 = 255}):delay(5)
     end
 end
 
@@ -187,7 +205,10 @@ function mainupdate(dt)
 	    if r.xvel < 0 then r.xvel = 0 end
 	end
 
+	if state.alreadybounced and r.ypos > 10 then state.alreadybounced = false end
+
 	if r.ypos < 0 then
+	    if not state.alreadybounced then sounds.playsnd.bounce(); state.alreadybounced = true end
 	    r.yvel = -r.yvel * 1/r.bouncedamp
 	    r.ypos = 0
 	    if r.yvel < 0 then
@@ -261,7 +282,7 @@ function maindraw()
 
     love.graphics.printf("Distance: "..math.floor(r.xpos / 50 + 0.5).."\nHeight: "..math.floor(r.ypos + 0.5), 20, 20, 760)
     love.graphics.printf("[space] to roll\n[r] to reset\n[q] to quit", 20, 20, 760, "center")
-    love.graphics.printf("Total Distance: "..math.floor(state.totaldistance + r.xpos / 50 + 0.5), 20, 20, 760, "right")
+    love.graphics.printf("Total Distance: "..state.totaldistance + math.floor(r.xpos / 50 + 0.5), 20, 20, 760, "right")
     love.graphics.printf("Upgrades:\n(costs 100 x CurrentLevel)\n[1] hit ("..state.level.hit.."/"..state.max.hit..
 	")\n[2] hill ("..state.level.hill.."/"..state.max.hill..
 	")\n[3] rock ("..state.level.rock.."/"..state.max.rock..
@@ -306,11 +327,12 @@ end
 function introkeyreleased(key)
     if state.gamestate == "intro" then
 	if intro.state == 0 and key == "space" then
+	    sounds.playsnd.push()
 	    intro.state = 1
 	    tween = flux.to(intro.rock, 8, {xpos = 450, xvel = 50, xoffset = 150}):ease("sinein"):oncomplete(nextintrostate)
 	    flux.to(intro.rock, 8, {ypos = 10}):ease("sineinout")
 	elseif intro.state == 4 and key == "space" then
-	    state.totaldistance = intro.rock.xpos / 50
+	    state.totaldistance = math.floor(intro.rock.xpos / 50 + 0.5)
 	    resetstuff()
 	end
     end
@@ -319,6 +341,7 @@ end
 function mainkeyreleased(key)
     if state.gamestate == "readytoroll" and state.charging and key == "space" then
 	state.gamestate = "launching"
+	sounds.playsnd.push()
 	state.charging = false
 	local maxvel = upgrade.hit[state.level.hit] * upgrade.hillspeeds[state.level.hill] * upgrade.rockspeeds[state.level.rock]
 	local hillvel = maxvel/2 + maxvel/2 * state.chargetime
