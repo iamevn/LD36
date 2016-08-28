@@ -3,7 +3,7 @@ flux = require "flux"
 
 local sprites = {}
 local state = {
-    gamestate = "readytoroll",
+    gamestate = "intro",
     totaldistance = 0,
     level = {
 	hit  = 1,
@@ -21,7 +21,33 @@ local state = {
     chargetime = 0,
     chargemax = 1,
     chargeflip = false,
+    font = love.graphics.getFont(),
 }
+local intro = {
+    state = 0,
+    rock = {
+	xpos = 0,
+	ypos = 145,
+	xoffset = 185,
+	yoffset = 90,
+	xvel = 0,
+	yvel = 0,
+	rotvel = 0,
+	rot = 0,
+	scl = 0.5,
+	friction = 10,
+	gravity = 10,
+	mass = 50,
+	bouncedamp = 2
+    },
+    textfade1 = 0,
+    textfade2 = 0,
+    mainfont =  love.graphics.newFont(12),
+    introfont = love.graphics.newFont("res/CAVEMAN.TTF", 50)
+}
+nextintrostate = function()
+    intro.state = intro.state + 1
+end
 local upgrade = {
     hit = {100, 200, 300, 400, 500, 1000},
     hillspeeds = {1.0, 1.5, 2.0},
@@ -94,11 +120,17 @@ function resetstuff()
     rockdata.yvel = 0
     rockdata.rotvel = 0
     rockdata.rot = 0
+
+    love.graphics.setFont(intro.mainfont)
+    love.keyreleased = mainkeyreleased
+    love.update = mainupdate
+    love.draw = maindraw
 end
 
 function love.load()
     sprites.background = love.graphics.newImage("res/background.png")
 
+    sprites.intro = love.graphics.newImage("res/intro.png")
     sprites.rock = {
 	love.graphics.newImage("res/rock1.png"),
 	love.graphics.newImage("res/rock2.png"),
@@ -114,11 +146,31 @@ function love.load()
 	love.graphics.newImage("res/ramp2.png"),
 	love.graphics.newImage("res/ramp3.png")
     }
-
-    resetstuff()
 end
 
-function love.update(dt)
+function introupdate(dt)
+    flux.update(dt)
+    local r = intro.rock
+
+    r.rotvel = r.xvel/64
+    r.rotvel = r.xvel/64
+    r.rot = (r.rot + r.rotvel * 2 * math.pi * dt) % (2 * math.pi)
+    r.xpos = r.xpos + r.xvel * dt
+
+    if intro.state == 2 then
+	r.xvel = r.xvel - dt * r.friction
+	if r.xvel < 0 then r.xvel = 0 end
+
+	if r.xvel == 0 then intro.state = 3 end
+    end
+
+    if intro.state == 3 then
+	intro.state = 4
+	tween = flux.to(intro, 5, {textfade1 = 255}):delay(1):after(1, {textfade2 = 255}):delay(5)
+    end
+end
+
+function mainupdate(dt)
     flux.update(dt)
     local r = rockdata
 
@@ -172,7 +224,32 @@ function love.update(dt)
     end
 end
 
-function love.draw()
+love.update = introupdate
+
+function introdraw()
+    love.graphics.clear(132, 209, 227, 255) --sky color
+    love.graphics.draw(sprites.intro, -(intro.rock.xpos) * 2, -500, 0, 2)
+    local r = intro.rock
+    love.graphics.draw(
+	sprites.rock[1],
+	r.xoffset * 2,
+	(love.graphics.getHeight() - r.ypos * 2 - r.yoffset),
+	r.rot,
+	r.scl,
+	r.scl,
+	sprites.rock[1]:getWidth()/2,
+	sprites.rock[1]:getHeight()/2
+    )
+    love.graphics.setColor(255, 255, 255, math.floor(intro.textfade1))
+    love.graphics.setFont(intro.introfont)
+    love.graphics.printf("THE HUMAN DRIVE FOR INNOVATION\nIN THE REALM OF SCIENCE", 20, 125, 760, "center")
+    love.graphics.setColor(255, 255, 255, math.floor(intro.textfade2))
+    love.graphics.setFont(intro.mainfont)
+    love.graphics.printf("(press [space])", 20, 400, 760, "center")
+    love.graphics.setColor(255, 255, 255, 255)
+end
+
+function maindraw()
     love.graphics.clear(132, 209, 227, 255) --sky color
 
     love.graphics.draw(sprites.background, -(rockdata.xpos%sprites.background:getWidth()), 0)
@@ -216,6 +293,8 @@ function love.draw()
     end
 end
 
+love.draw = introdraw
+
 function love.keypressed(key)
     if state.gamestate == "readytoroll" and key == "space" then
 	state.chargetime = 0
@@ -224,7 +303,19 @@ function love.keypressed(key)
     end
 end
 
-function love.keyreleased(key)
+function introkeyreleased(key)
+    if state.gamestate == "intro" then
+	if intro.state == 0 and key == "space" then
+	    intro.state = 1
+	    tween = flux.to(intro.rock, 8, {xpos = 450, xvel = 50, xoffset = 150}):ease("sinein"):oncomplete(nextintrostate)
+	    flux.to(intro.rock, 8, {ypos = 10}):ease("sineinout")
+	elseif intro.state == 4 and key == "space" then
+	    resetstuff()
+	end
+    end
+end
+
+function mainkeyreleased(key)
     if state.gamestate == "readytoroll" and state.charging and key == "space" then
 	state.gamestate = "launching"
 	state.charging = false
@@ -259,3 +350,5 @@ function love.keyreleased(key)
 	levelup(4)
     end
 end
+
+love.keyreleased = introkeyreleased
