@@ -50,34 +50,31 @@ function launch()
 end
 
 function levelup(what)
-    local total = math.floor(state.totaldistance / 50 + 0.5)
-    local spent = 0
     if (what == 1 or what == "hit")
-	and total >= state.level.hit * 100
+	and state.totaldistance >= state.level.hit * 100
 	and state.level.hit < state.max.hit
     then
-	spent = state.level.hit * 100
+	state.totaldistance = state.totaldistance - state.level.hit * 100
 	state.level.hit = state.level.hit + 1
     elseif (what == 2 or what == "hill")
-	and total >= state.level.hill * 100
+	and state.totaldistance >= state.level.hill * 100
 	and state.level.hill < state.max.hill
     then
-	spent = state.level.hill * 100
+	state.totaldistance = state.totaldistance - state.level.hill * 100
 	state.level.hill = state.level.hill + 1
     elseif (what == 3 or what == "rock")
-	and total >= state.level.rock * 100
+	and state.totaldistance >= state.level.rock * 100
 	and state.level.rock < state.max.rock
     then
-	spent = state.level.rock * 100
+	state.totaldistance = state.totaldistance - state.level.rock * 100
 	state.level.rock = state.level.rock + 1
     elseif (what == 4 or what == "ramp")
-	and total >= state.level.ramp * 100
+	and state.totaldistance >= state.level.ramp * 100
 	and state.level.ramp < state.max.ramp
     then
-	spent = state.level.ramp * 100
+	state.totaldistance = state.totaldistance - state.level.ramp * 100
 	state.level.ramp = state.level.ramp + 1
     end
-    state.totaldistance = state.totaldistance - spent * 100
     resetstuff()
 end
 
