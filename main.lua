@@ -12,7 +12,7 @@ local state = {
 	ramp = 1
     },
     max = {
-	hit  = 6,
+	hit  = 10,
 	hill = 2,
 	rock = 3,
 	ramp = 3
@@ -65,10 +65,10 @@ nextintrostate = function()
     intro.state = intro.state + 1
 end
 local upgrade = {
-    hit = {100, 200, 300, 400, 500, 1000},
+    hit = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000},
     hillspeeds = {1.0, 1.5, 2.0},
     hillheights = {145, 300, 500},
-    rockfriction = {10, 5, 1},
+    rockfriction = {10, 5, 3},
     rockspeeds = {1.0, 1.2, 2.0}
 }
 local rockdata = {
