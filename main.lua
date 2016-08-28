@@ -11,12 +11,24 @@ local state = {
 	rock = 1,
 	ramp = 1
     },
+    max = {
+	hit  = 6,
+	hill = 2,
+	rock = 3,
+	ramp = 3
+    },
     charging = false,
     chargetime = 0,
     chargemax = 1,
     chargeflip = false,
 }
-local hittable = {100, 200, 300, 400, 500, 1000}
+local upgrade = {
+    hit = {100, 200, 300, 400, 500, 1000},
+    hillspeeds = {1.0, 1.5, 2.0},
+    hillheights = {145, 300, 500},
+    rockfriction = {10, 5, 1},
+    rockspeeds = {1.0, 1.2, 2.0}
+}
 local rockdata = {
     xpos = 0, --distance from start spot
     ypos = 145, --height above ground
@@ -27,7 +39,7 @@ local rockdata = {
     rotvel = 0, --full rotations per second
     rot = 0, --in radians
     scl = 0.25,
-    friction = 10,
+    friction = upgrade.rockfriction[state.level.rock],
     gravity = 10,
     mass = 50,
     bouncedamp = 2,
@@ -37,16 +49,45 @@ function launch()
     state.gamestate = "launched"
 end
 
+function levelup(what)
+    if what == 1 or what == "hit" then
+	if state.level.hit < state.max.hit then
+	    state.level.hit = state.level.hit + 1
+	else
+	    state.level.hit = 1
+	end
+    elseif what == 2 or what == "hill" then
+	if state.level.hill < state.max.hill then
+	    state.level.hill = state.level.hill + 1
+	else
+	    state.level.hill = 1
+	end
+    elseif what == 3 or what == "rock" then
+	if state.level.rock < state.max.rock then
+	    state.level.rock = state.level.rock + 1
+	else
+	    state.level.rock = 1
+	end
+    elseif what == 4 or what == "ramp" then
+	if state.level.ramp < state.max.ramp then
+	    state.level.ramp = state.level.ramp + 1
+	else
+	    state.level.ramp = 1
+	end
+    end
+    resetstuff()
+end
+
 local tween = nil
 
 function resetstuff()
     state.totaldistance = state.totaldistance + rockdata.xpos / 50
-    tween:stop()
+    if tween then tween:stop() end
     state.gamestate = "readytoroll"
     state.charging = false
     state.chargeflip = false
     rockdata.xpos = 0
-    rockdata.ypos = 145
+    rockdata.ypos = upgrade.hillheights[state.level.hill]
     rockdata.xoffset = 65
     rockdata.yoffset = 100
     rockdata.xvel = 0
@@ -65,13 +106,16 @@ function love.load()
     }
 
     sprites.hill = {
-	love.graphics.newImage("res/hill1.png")
+	love.graphics.newImage("res/hill1.png"),
+	love.graphics.newImage("res/hill2.png"),
     }
     sprites.ramp = {
 	love.graphics.newImage("res/ramp1.png"),
 	love.graphics.newImage("res/ramp2.png"),
 	love.graphics.newImage("res/ramp3.png")
     }
+
+    resetstuff()
 end
 
 function love.update(dt)
@@ -141,6 +185,12 @@ function love.draw()
     love.graphics.printf("Distance: "..math.floor(r.xpos / 50 + 0.5).."\nHeight: "..math.floor(r.ypos + 0.5), 20, 20, 760)
     love.graphics.printf("[space] to roll\n[r] to reset\n[q] to quit", 20, 20, 760, "center")
     love.graphics.printf("Total Distance: "..math.floor(state.totaldistance + r.xpos / 50 + 0.5), 20, 20, 760, "right")
+    love.graphics.printf("Upgrades:\n[1]     hit ("..state.level.hit.."/"..state.max.hit..
+	")\n[2]     hill ("..state.level.hill.."/"..state.max.hill..
+	")\n[3]  rock ("..state.level.rock.."/"..state.max.rock..
+	")\n[4] ramp ("..state.level.ramp.."/"..state.max.ramp..")"
+	, 20, 34, 760, "right"
+    )
 
     love.graphics.draw(
 	sprites.rock[state.level.rock],
@@ -178,20 +228,34 @@ function love.keyreleased(key)
     if state.gamestate == "readytoroll" and state.charging and key == "space" then
 	state.gamestate = "launching"
 	state.charging = false
-	local maxvel = hittable[state.level.hit]
+	local maxvel = upgrade.hit[state.level.hit] * upgrade.hillspeeds[state.level.hill] * upgrade.rockspeeds[state.level.rock]
 	local hillvel = maxvel/2 + maxvel/2 * state.chargetime
+
 	if state.level.hill == 1 then
 	    tween = flux.to(rockdata, 300 / hillvel, {xpos = 300, ypos = 0, xvel = hillvel, xoffset = 150}):ease("quadin")
+	elseif state.level.hill == 2 then
+	    tween = flux.to(rockdata, 300 / hillvel, {xpos = 300, ypos = 0, xvel = hillvel, xoffset = 150}):ease("cubicin")
 	end
 
 	-- ramp 1 doesn't do anything
-	if state.level.ramp == 2 then tween = tween:after(50 / hillvel, {xpos = 350, ypos = 50, yvel = 0.5 * hillvel}):ease("linear") end
-	if state.level.ramp == 3 then tween = tween:after(90 / hillvel, {xpos = 390, ypos = 100, yvel = 1 * hillvel}):ease("linear") end
+	if state.level.ramp == 2 then
+	    tween:after(50 / hillvel, {xpos = 350, ypos = 50, yvel = 1 * hillvel}):ease("linear")
+	elseif state.level.ramp == 3 then
+	    tween:after(90 / hillvel, {xpos = 390, ypos = 100, yvel = 2 * hillvel}):ease("linear")
+	end
 
 	tween:oncomplete(launch)
     elseif key == "r" or key == "R" then
 	resetstuff()
     elseif key == "q" or key == "Q" then
 	love.event.quit()
+    elseif key == "1" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+	levelup(1)
+    elseif key == "2" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+	levelup(2)
+    elseif key == "3" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+	levelup(3)
+    elseif key == "4" and state.gamestate == "readytoroll" or state.gamestate == "stopped" then
+	levelup(4)
     end
 end
