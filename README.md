@@ -4,7 +4,9 @@ Ludum Dare page: http://ludumdare.com/compo/ludum-dare-36/?uid=63363
 
 You can play it either from the webplayer version linked on the LD page or by clicking the releases tab above and downloading it.
 
-You'll need [LÖVE](https://love2d.org)
+
+
+You'll need [LÖVE](https://love2d.org) to use the run it from source.
 
 
 
